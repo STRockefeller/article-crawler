@@ -1,35 +1,35 @@
 package crawler
 
 import (
-	"log"
+	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
 )
 
-func Crawl(url string) string {
+func Crawl(url string) (string, error) {
 	res, err := http.Get(url)
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 	defer res.Body.Close()
 
 	if res.StatusCode != 200 {
-		log.Fatalf("status code error: %d %s", res.StatusCode, res.Status)
+		return "", fmt.Errorf("status code error: %d %s", res.StatusCode, res.Status)
 	}
 
 	doc, err := goquery.NewDocumentFromReader(res.Body)
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 
-	return FindRecurse(doc.Find("body").Children(), "p, h1, h2, h3, h4, h5, h6, ul, ol, pre, blockquote")
+	return findRecurse(doc.Find("body").Children(), "p, h1, h2, h3, h4, h5, h6, ul, ol, pre, blockquote"), nil
 }
 
 const newLine = "\r\n"
 
-func FindRecurse(children *goquery.Selection, tags string) string {
+func findRecurse(children *goquery.Selection, tags string) string {
 	if children == nil {
 		return ""
 	}
@@ -41,7 +41,7 @@ func FindRecurse(children *goquery.Selection, tags string) string {
 				res += str + newLine
 			}
 		} else {
-			res += FindRecurse(s.Children(), tags)
+			res += findRecurse(s.Children(), tags)
 		}
 	})
 	return res
